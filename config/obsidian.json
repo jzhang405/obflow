@@ -1,0 +1,69 @@
+{
+  "obsidian": {
+    "api": {
+      "localRestApi": {
+        "enabled": true,
+        "connection": {
+          "host": "127.0.0.1",
+          "port": 27123,
+          "protocol": "http",
+          "basePath": "",
+          "timeout": 5000,
+          "retryAttempts": 3
+        },
+        "authentication": {
+          "type": "none",
+          "apiKey": "${OBSIDIAN_API_KEY}",
+          "bearerToken": null
+        },
+        "endpoints": {
+          "vaultList": "/vault/list",
+          "vaultActive": "/vault/active",
+          "fileList": "/file/list",
+          "fileGet": "/file/get",
+          "fileCreate": "/file/create",
+          "fileUpdate": "/file/update",
+          "fileDelete": "/file/delete",
+          "fileSearch": "/file/search",
+          "fileMove": "/file/move",
+          "fileRename": "/file/rename",
+          "folderCreate": "/folder/create",
+          "folderDelete": "/folder/delete",
+          "folderList": "/folder/list"
+        },
+        "limits": {
+          "maxFileSize": "10mb",
+          "maxRequestSize": "50mb",
+          "rateLimit": {
+            "windowMs": 60000,
+            "maxRequests": 100
+          }
+        }
+      }
+    },
+    "validation": {
+      "requiredPlugins": [
+        "obsidian-rest-api"
+      ],
+      "healthCheck": {
+        "enabled": true,
+        "interval": 30000,
+        "timeout": 5000
+      }
+    },
+    "security": {
+      "allowedOrigins": [
+        "localhost",
+        "127.0.0.1",
+        "::1"
+      ],
+      "cors": {
+        "enabled": true,
+        "credentials": true
+      },
+      "encryption": {
+        "enabled": false,
+        "key": null
+      }
+  }
+}

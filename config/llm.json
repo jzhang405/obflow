@@ -1,0 +1,92 @@
+{
+  "providers": {
+    "deepseek": {
+      "enabled": true,
+      "models": {
+        "deepseek-chat": {
+          "displayName": "DeepSeek Chat",
+          "maxTokens": 4096,
+          "temperature": 0.7,
+          "topP": 0.9,
+          "frequencyPenalty": 0,
+          "presencePenalty": 0
+        },
+        "deepseek-reasoner": {
+          "displayName": "DeepSeek Reasoner",
+          "maxTokens": 8192,
+          "temperature": 0.1,
+          "topP": 0.95,
+          "frequencyPenalty": 0.1,
+          "presencePenalty": 0.1
+        }
+      },
+      "apiKey": "${DEEPSEEK_API_KEY}",
+      "baseUrl": "https://api.deepseek.com",
+      "timeout": 25000,
+      "retryAttempts": 2,
+      "rateLimit": {
+        "requestsPerMinute": 30,
+        "tokensPerMinute": 50000
+      }
+    },
+    "iflow": {
+      "enabled": true,
+      "models": {
+        "glm-4.6": {
+          "displayName": "GLM-4.6",
+          "maxTokens": 8192,
+          "temperature": 0.7,
+          "topP": 0.9,
+          "frequencyPenalty": 0,
+          "presencePenalty": 0
+        },
+        "deepseek-v3.2": {
+          "displayName": "DeepSeek V3.2",
+          "maxTokens": 16000,
+          "temperature": 0.1,
+          "topP": 0.95,
+          "frequencyPenalty": 0.1,
+          "presencePenalty": 0.1
+        },
+        "qwen3-coder-plus": {
+          "displayName": "Qwen3 Coder Plus",
+          "maxTokens": 32768,
+          "temperature": 0.2,
+          "topP": 0.95,
+          "frequencyPenalty": 0.05,
+          "presencePenalty": 0.05
+        },
+        "kimi-k2": {
+          "displayName": "Kimi K2",
+          "maxTokens": 8000,
+          "temperature": 0.7,
+          "topP": 0.9,
+          "frequencyPenalty": 0,
+          "presencePenalty": 0
+        }
+      },
+      "apiKey": "${IFLOW_API_KEY}",
+      "baseUrl": "${IFLOW_BASE_URL:-https://cloud.iflow.cn/v1}",
+      "timeout": 30000,
+      "retryAttempts": 3,
+      "rateLimit": {
+        "requestsPerMinute": 60,
+        "tokensPerMinute": 100000
+      }
+    }
+  },
+  "defaults": {
+    "provider": "iflow",
+    "model": "kimi-k2",
+    "timeout": 30000,
+    "retryAttempts": 3,
+    "maxConcurrency": 2
+  },
+  "features": {
+    "enableStreaming": true,
+    "enableCaching": true,
+    "cacheTtl": 3600000,
+    "enableFallback": true,
+    "fallbackOrder": ["iflow", "deepseek"]
+  }
+}

@@ -1,0 +1,15 @@
+# Ignore artifacts:
+build
+coverage
+node_modules
+*.log
+
+# Ignore all files in these directories:
+workspace/logs/*.log
+workspace/cache/*
+workspace/temp/*
+workspace/backups/*.tar.gz
+
+# But allow these files:
+!workspace/cache/.gitkeep
+!workspace/temp/.gitkeep

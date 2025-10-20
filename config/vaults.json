@@ -1,0 +1,15 @@
+{
+  "vaults": [
+    {
+      "id": "primary",
+      "name": "Primary Vault",
+      "path": "${OBSIDIAN_VAULT_PATH:-~/Documents/Obsidian/Primary}",
+      "isActive": true,
+      "settings": {
+        "autoTag": true,
+        "smartToc": true,
+        "taskPriority": true
+      }
+    }
+  ]
+}

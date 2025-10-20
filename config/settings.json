@@ -1,0 +1,51 @@
+{
+  "version": "1.0.0",
+  "application": {
+    "name": "obflow",
+    "environment": "development"
+  },
+  "workflow": {
+    "autoTag": {
+      "enabled": true,
+      "confidenceThreshold": 0.7,
+      "maxTags": 10
+    },
+    "smartToc": {
+      "enabled": true,
+      "maxDepth": 6,
+      "minDepth": 2,
+      "updateOnSave": true
+    },
+    "taskPriority": {
+      "enabled": true,
+      "factors": {
+        "deadline": 0.4,
+        "importance": 0.3,
+        "urgency": 0.2,
+        "effort": 0.1
+      }
+    }
+  },
+  "cache": {
+    "enabled": true,
+    "ttl": 3600000,
+    "maxSize": 100
+  },
+  "logging": {
+    "level": "info",
+    "file": "workspace/logs/obflow.log",
+    "maxSize": "10m",
+    "maxFiles": 5
+  },
+  "backup": {
+    "enabled": true,
+    "interval": "daily",
+    "retention": 30,
+    "path": "workspace/backups"
+  },
+  "performance": {
+    "maxConcurrency": 3,
+    "timeout": 30000,
+    "retryAttempts": 3
+  }
+}
