@@ -12,9 +12,8 @@
           "retryAttempts": 3
         },
         "authentication": {
-          "type": "none",
-          "apiKey": "${OBSIDIAN_API_KEY}",
-          "bearerToken": null
+          "type": "bearer",
+          "bearerToken": "${OBSIDIAN_BEARER_TOKEN}"
         },
         "endpoints": {
           "vaultList": "/vault/list",
