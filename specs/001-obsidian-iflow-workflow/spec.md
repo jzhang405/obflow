@@ -55,13 +55,181 @@
 
 ---
 
-### Edge Cases
+### Edge Cases & Error Handling *(mandatory)*
 
-- 当系统无法确定最佳标签时如何处理
-- 当目录结构过于复杂时的性能表现
-- 当任务依赖关系存在循环时如何处理
-- 当用户数据量非常大时的系统响应时间
-- 网络连接中断时的离线功能可用性
+#### 1. 标签不准确处理 (Tag Accuracy Issues)
+
+**检测条件**:
+- 标签置信度 < 0.7
+- 用户连续3次拒绝同一类型标签
+- 标签冲突（同一内容被标记为对立标签）
+
+**处理流程**:
+1. **低置信度标签**:
+   - 系统标记为"建议标签"（灰色显示）
+   - 用户可以选择接受、修改或拒绝
+   - 被拒绝的标签记录到用户偏好中学习
+
+2. **用户反馈学习**:
+   - 记录用户的接受/拒绝行为
+   - 调整标签算法的权重参数
+   - 7天后重新评估被拒绝的标签
+
+3. **回退机制**:
+   - 提供"智能标签"开关（用户可关闭）
+   - 回退到基于文件名的简单标签
+   - 提供手动标签建议列表
+
+#### 2. 复杂目录结构性能优化 (Complex TOC Performance)
+
+**检测条件**:
+- 目录层级 > 6级
+- 单文件标题数量 > 50个
+- 嵌套列表深度 > 4级
+
+**处理策略**:
+1. **分层加载**:
+   - 初始显示前3级目录
+   - 提供"展开更多"按钮
+   - 异步加载深层目录
+
+2. **智能截断**:
+   - 超过阈值的目录自动折叠
+   - 提供"显示全部"选项
+   - 记忆用户的展开偏好
+
+3. **性能优化**:
+   - 使用虚拟滚动技术
+   - 缓存已解析的目录结构
+   - 增量更新而非全量重算
+
+#### 3. 任务依赖循环检测 (Task Dependency Cycles)
+
+**检测算法**:
+```python
+def detect_cycle(tasks):
+    graph = build_dependency_graph(tasks)
+    visited = set()
+    rec_stack = set()
+    
+    for task in tasks:
+        if task not in visited:
+            if has_cycle_util(task, visited, rec_stack, graph):
+                return True, find_cycle_path(task, graph)
+    return False, []
+```
+
+**处理流程**:
+1. **循环检测**:
+   - 每次任务依赖更新时检测
+   - 使用深度优先搜索(DFS)算法
+   - 记录循环路径供用户查看
+
+2. **冲突解决**:
+   - 标记循环中的任务为"冲突状态"
+   - 提供可视化循环图
+   - 建议用户移除或修改依赖关系
+
+3. **自动修复建议**:
+   - 识别可以安全移除的依赖
+   - 建议依赖关系的替代方案
+   - 提供一键修复选项（用户确认后）
+
+#### 4. 大数据量性能处理 (Large Dataset Performance)
+
+**检测阈值**:
+- Vault文件数量 > 5,000个
+- 总数据量 > 500MB
+- 单文件大小 > 10MB
+
+**优化策略**:
+
+1. **增量处理**:
+   - 只处理修改时间 > 最后处理时间的文件
+   - 使用文件系统监视器实时跟踪变化
+   - 建立文件变更索引
+
+2. **分批处理**:
+   ```python
+   BATCH_SIZE = 100
+   for batch in chunk_list(files, BATCH_SIZE):
+       process_batch(batch)
+       time.sleep(0.1)  # 避免CPU过载
+   ```
+
+3. **内存管理**:
+   - 使用生成器而非列表加载大文件
+   - 实现文件内容的流式处理
+   - 定期清理处理缓存
+
+4. **索引优化**:
+   - 为常用查询字段建立索引
+   - 使用全文搜索而非线性扫描
+   - 实现分片处理（按目录或时间）
+
+#### 5. 离线功能支持 (Offline Functionality)
+
+**检测条件**:
+- API连接超时 > 30秒
+- 网络不可达错误
+- DNS解析失败
+
+**离线模式功能**:
+
+1. **本地缓存**:
+   - 缓存最近的API响应（默认缓存1小时）
+   - 本地存储用户操作队列
+   - 维护本地文件索引
+
+2. **操作队列**:
+   ```python
+   class OfflineQueue:
+       def add_operation(self, operation, data):
+           # 存储操作到本地数据库
+           pass
+       
+       def sync_when_online(self):
+           # 网络恢复后批量同步
+           pass
+   ```
+
+3. **降级服务**:
+   - 标签功能：使用本地算法（准确度可能降低）
+   - 目录功能：基于正则表达式解析
+   - 任务功能：使用简单的优先级规则
+
+4. **同步策略**:
+   - 网络恢复后自动同步队列
+   - 检测并解决冲突（最后修改时间优先）
+   - 通知用户同步结果
+
+#### 6. 通用错误处理框架
+
+**错误分类**:
+- **用户错误** (4xx): 参数错误、权限问题
+- **系统错误** (5xx): 服务不可用、内部错误
+- **网络错误**: 连接超时、DNS失败
+- **数据错误**: 格式错误、验证失败
+
+**处理原则**:
+1. **用户友好**: 技术错误转换为易懂的消息
+2. **可操作**: 每个错误都提供解决建议
+3. **可恢复**: 尽可能提供自动恢复选项
+4. **可追踪**: 详细记录错误上下文信息
+
+**错误响应格式**:
+```json
+{
+  "error": {
+    "code": "TAGGING_FAILED",
+    "message": "无法为文件生成标签",
+    "details": "网络连接超时，已切换到离线模式",
+    "suggestion": "请检查网络连接或稍后重试",
+    "retryable": true,
+    "timestamp": "2025-10-20T10:30:00Z"
+  }
+}
+```
 
 ## Requirements *(mandatory)*
 
@@ -107,6 +275,271 @@
 - **SC-005**: 用户完成常见笔记组织任务的时间减少50%
 - **SC-006**: 90%的用户能够在不看文档的情况下正确使用核心功能
 - **SC-007**: 重复内容检测准确率达到95%
+
+## Non-Functional Requirements *(mandatory)*
+
+### Performance Requirements
+- **PERF-001**: 系统必须在3秒内完成单文件标签分析（≤1000字符）
+- **PERF-002**: 批量处理10个文件时，总处理时间不得超过30秒
+- **PERF-003**: 内存使用量不得超过500MB（单vault，≤1000个笔记文件）
+- **PERF-004**: CPU使用率不得超过70%（持续5分钟以上）
+- **PERF-005**: 目录生成必须在1秒内完成（单文件，≤5级标题）
+
+### Security & Privacy Requirements
+- **SEC-001**: 所有API通信必须使用HTTPS（如果启用远程访问）
+- **SEC-002**: Bearer Token必须存储在加密的环境变量中，不得硬编码
+- **SEC-003**: 系统不得将笔记内容传输到外部服务（本地处理）
+- **SEC-004**: 必须支持vault级别的访问权限控制
+- **SEC-005**: 敏感配置信息必须在日志中脱敏处理
+
+### Reliability & Availability Requirements
+- **REL-001**: 系统可用性必须达到99.5%（每日运行时间）
+- **REL-002**: 处理失败时必须提供明确的错误信息和恢复建议
+- **REL-003**: 必须实现自动重试机制（最大3次重试，指数退避）
+- **REL-004**: 必须支持断点续传和增量处理
+- **REL-005**: 系统崩溃后必须在30秒内自动恢复
+
+### Observability Requirements
+- **OBS-001**: 必须记录所有关键操作的执行时间和结果
+- **OBS-002**: 必须提供性能指标监控（处理时间、成功率、错误率）
+- **OBS-003**: 必须支持日志级别配置（ERROR、WARN、INFO、DEBUG）
+- **OBS-004**: 必须实现健康检查端点（供外部监控使用）
+- **OBS-005**: 关键错误必须发送告警通知（可配置）
+
+## Clarifications
+
+### Session 2025-10-20
+
+- Q: 非功能性要求 - 性能和安全约束 → A: 添加完整的性能、安全、可靠性基准要求，包括具体的性能指标、安全要求和可观测性要求
+- Q: Obsidian Local REST API集成细节 → A: 添加完整的API集成规范，包括端点、错误码、重试策略、认证方式和内容格式支持
+- Q: 数据模型和实体关系 → A: 添加完整的ER图、关系定义、状态转换规则、数据规模假设和去重规则
+- Q: 边缘情况处理方案 → A: 为每个边缘情况添加详细的处理流程和回退机制，包括标签不准确、复杂目录性能、任务依赖循环、大数据量处理和离线功能支持
+
+## Data Model & Entity Relationships *(mandatory)*
+
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    Note ||--o{ Tag : "has many"
+    Note ||--o{ Task : "contains"
+    Note ||--o{ Directory : "belongs to"
+    Note ||--o{ Template : "uses"
+    Task ||--o{ Task : "depends on"
+    Tag ||--o{ Tag : "categorizes"
+    Directory ||--o{ Directory : "contains"
+```
+
+### Entity Definitions
+
+#### Note Entity
+```yaml
+Note:
+  id: string (UUID, primary key)
+  filename: string (unique, not null)
+  title: string (not null)
+  content: text (markdown)
+  created_at: datetime (not null)
+  updated_at: datetime (not null)
+  file_size: integer (bytes)
+  word_count: integer
+  directory_id: string (FK to Directory)
+  template_id: string (FK to Template, nullable)
+  status: enum(draft, published, archived)
+  version: integer (default: 1)
+```
+
+#### Tag Entity
+```yaml
+Tag:
+  id: string (UUID, primary key)
+  name: string (unique, not null, max: 50 chars)
+  type: enum(keyword, file_type, time_period, project, sentiment, custom)
+  confidence: float (0.0-1.0, default: 0.8)
+  source: enum(auto, manual, system)
+  created_at: datetime (not null)
+  updated_at: datetime (not null)
+  color: string (hex color, nullable)
+  description: string (max: 200 chars, nullable)
+```
+
+#### Task Entity
+```yaml
+Task:
+  id: string (UUID, primary key)
+  title: string (not null, max: 200 chars)
+  description: text (nullable)
+  priority: integer (1-5, default: 3)
+  status: enum(todo, in_progress, done, cancelled)
+  due_date: datetime (nullable)
+  estimated_hours: float (nullable)
+  actual_hours: float (nullable)
+  note_id: string (FK to Note)
+  parent_task_id: string (FK to Task, nullable)
+  created_at: datetime (not null)
+  updated_at: datetime (not null)
+  completed_at: datetime (nullable)
+```
+
+#### Directory Entity
+```yaml
+Directory:
+  id: string (UUID, primary key)
+  name: string (not null, max: 100 chars)
+  path: string (unique, not null)
+  parent_id: string (FK to Directory, nullable)
+  level: integer (1-10, default: 1)
+  style: enum(numeric, bullet, mixed)
+  max_depth: integer (2-6, default: 4)
+  is_auto_generated: boolean (default: true)
+  created_at: datetime (not null)
+  updated_at: datetime (not null)
+```
+
+#### Template Entity
+```yaml
+Template:
+  id: string (UUID, primary key)
+  name: string (unique, not null, max: 50 chars)
+  type: enum(daily, weekly, monthly, meeting, project, custom)
+  content: text (markdown template)
+  variables: json (template variables schema)
+  period: enum(daily, weekly, monthly, quarterly, yearly)
+  is_active: boolean (default: true)
+  created_at: datetime (not null)
+  updated_at: datetime (not null)
+```
+
+#### Note-Tag Relationship (Many-to-Many)
+```yaml
+NoteTag:
+  note_id: string (FK to Note, part of composite PK)
+  tag_id: string (FK to Tag, part of composite PK)
+  confidence: float (0.0-1.0, default: 0.8)
+  source: enum(auto, manual, system)
+  created_at: datetime (not null)
+  updated_at: datetime (not null)
+```
+
+### State Transition Rules
+
+#### Note Status Transitions
+```
+draft → published → archived
+   ↓        ↓
+cancelled  cancelled
+```
+- **draft → published**: 内容完成并准备好使用
+- **published → archived**: 内容过时或不再活跃
+- **any → cancelled**: 内容被废弃
+
+#### Task Status Transitions
+```
+todo → in_progress → done
+  ↓        ↓
+cancelled  cancelled
+```
+- **todo → in_progress**: 开始执行任务
+- **in_progress → done**: 任务完成
+- **any → cancelled**: 任务被取消
+
+#### Tag Confidence Levels
+- **0.9-1.0**: 高置信度（系统推荐，用户可直接接受）
+- **0.7-0.89**: 中等置信度（系统推荐，用户需确认）
+- **0.5-0.69**: 低置信度（系统建议，用户需审核）
+- **<0.5**: 极低置信度（不自动应用，仅建议）
+
+### Data Volume & Scale Assumptions
+
+#### Scale Projections
+- **单个Vault规模**: 100-10,000个笔记文件
+- **单个文件大小**: 1KB-1MB（平均50KB）
+- **标签密度**: 每篇笔记2-15个标签（平均5个）
+- **任务密度**: 每篇笔记0-10个任务（平均2个）
+- **目录深度**: 2-6级（平均4级）
+
+#### Performance Targets
+- **数据库查询**: 单表查询<100ms，关联查询<500ms
+- **文件扫描**: 1000个文件<30秒，增量扫描<5秒
+- **内存使用**: 基础内存<200MB，处理时峰值<500MB
+- **存储增长**: 每月增长<10%（含索引和缓存）
+
+### Uniqueness & Deduplication Rules
+
+#### Content Deduplication
+- **文件级去重**: 基于文件路径和内容的MD5哈希
+- **内容相似度**: 使用文本相似度算法（>85%相似视为重复）
+- **标签去重**: 同义词检测和标准化（大小写、单复数）
+- **任务去重**: 基于标题相似度和时间窗口（7天内）
+
+#### Identity Resolution
+- **文件识别**: 路径+文件名作为唯一标识
+- **标签识别**: 名称标准化后的小写形式
+- **任务识别**: 在所属笔记内的唯一标题
+- **目录识别**: 完整路径作为唯一标识
+
+## Integration Requirements *(mandatory)*
+
+### Obsidian Local REST API Integration
+
+#### API Version Requirements
+- **API-001**: 必须支持 Local REST API v1.0 及以上版本
+- **API-002**: 必须兼容 Obsidian v0.15.0 及以上版本
+- **API-003**: 必须支持 Bearer Token 认证方式
+
+#### Core API Endpoints
+
+**Vault文件操作**:
+- `GET /vault/` - 列出vault根目录文件
+- `GET /vault/{filename}` - 获取指定文件内容（支持application/vnd.olrapi.note+json格式）
+- `PUT /vault/{filename}` - 创建或更新文件
+- `POST /vault/{filename}` - 追加内容到文件末尾
+- `PATCH /vault/{filename}` - 相对定位插入内容（支持heading、block、frontmatter）
+- `DELETE /vault/{filename}` - 删除指定文件
+
+**活动文件操作**:
+- `GET /active/` - 获取当前活动文件内容
+- `PUT /active/` - 更新活动文件内容
+- `POST /active/` - 追加内容到活动文件
+- `PATCH /active/` - 相对定位修改活动文件内容
+
+**搜索功能**:
+- `POST /search/simple?query={query}` - 简单文本搜索
+- `POST /search/` - 高级搜索（支持Dataview DQL和JsonLogic查询）
+
+#### 认证和安全
+- **AUTH-001**: 所有API请求（除GET /外）必须包含Bearer Token认证头
+- **AUTH-002**: Token格式: `Authorization: Bearer {OBSIDIAN_BEARER_TOKEN}`
+- **AUTH-003**: 认证失败时必须返回401状态码并提供清晰的错误信息
+- **AUTH-004**: 必须支持API密钥轮换而不中断服务
+
+#### 错误处理策略
+- **ERROR-001**: 404错误: 文件不存在时返回，必须提供友好的用户提示
+- **ERROR-002**: 405错误: 路径引用目录而非文件时返回
+- **ERROR-003**: 400错误: 请求格式错误时返回，必须包含具体的错误详情
+- **ERROR-004**: 429错误: 速率限制触发时返回，必须包含重试等待时间
+- **ERROR-005**: 500错误: 服务器内部错误时返回，必须记录详细日志供调试
+
+#### 重试和回退机制
+- **RETRY-001**: 网络超时（>5秒）时必须自动重试，最多3次
+- **RETRY-002**: 5xx错误必须采用指数退避策略重试（1s, 2s, 4s）
+- **RETRY-003**: 429错误必须等待指定的重试时间后重试
+- **RETRY-004**: 重试失败时必须提供本地文件操作的回退方案
+- **RETRY-005**: 必须记录所有重试操作供故障排查
+
+#### 内容格式支持
+- **FORMAT-001**: 必须支持 `text/markdown` 纯Markdown内容
+- **FORMAT-002**: 必须支持 `application/vnd.olrapi.note+json` 完整笔记对象格式
+- **FORMAT-003**: 必须正确处理YAML frontmatter元数据
+- **FORMAT-004**: 必须支持Obsidian内部链接语法 `[[链接]]`
+- **FORMAT-005**: 必须支持标签解析和提取
+
+#### 性能优化
+- **PERF-API-001**: API请求必须实现连接池复用
+- **PERF-API-002**: 批量操作必须合并为单个API请求（如果支持）
+- **PERF-API-003**: 必须实现响应缓存机制（可配置超时）
+- **PERF-API-004**: 大文件处理必须支持分块传输
+- **PERF-API-005**: 必须监控API响应时间并记录性能指标
 
 ## Assumptions
 
