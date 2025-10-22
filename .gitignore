@@ -1,0 +1,8 @@
+# Environment variables
+.env
+
+# iFlow CLI configuration
+.iflow/
+
+# Specify configuration
+.specify/
