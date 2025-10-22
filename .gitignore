@@ -6,3 +6,6 @@
 
 # Specify configuration
 .specify/
+
+# Reference documentation
+ref/
